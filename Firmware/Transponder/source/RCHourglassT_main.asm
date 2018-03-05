@@ -499,7 +499,7 @@ Delay_0
 	goto	$+1
 
     ; Additional delay random ; Delay = 0.0001 0.0002 0.0004 0.0008 seconds
-    ; delay from  2 to 2.8 ms
+    ; total delay from  2 to 2.8 ms
 Random_Delay
     BANKSEL rd1
     movfw	rd1

@@ -1,5 +1,5 @@
 
-; PIC16F18313 Transpoder firmware
+; PIC16F18313 Transponder firmware
 ; Developed by Marco Venturini
 ; Project RC Hourglass
 ;
@@ -191,7 +191,7 @@ SETUP
     CLRF  CWG1DBR     ; no raising deadband
     CLRF  CWG1DBF     ; no falling deadband
     CLRF  CWG1AS1     ; no auto shutdown
-    CLRF  CWG1STR     ; no steeringg
+    CLRF  CWG1STR     ; no steering
     MOVLW b'00001010' ; CWG1  input is CLC1 output
     MOVWF CWG1DAT
     MOVLW b'10101000' ; CWG1  outputs are LOW when shutdown, CWG1 is shut down, without auto restart

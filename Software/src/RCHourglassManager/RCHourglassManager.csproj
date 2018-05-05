@@ -81,6 +81,12 @@
     <Compile Include="FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormProgramTweak.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormProgramTweak.Designer.cs">
+      <DependentUpon>FormProgramTweak.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormRegistration.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -93,10 +99,13 @@
     <Compile Include="FormRegistrationResult.Designer.cs">
       <DependentUpon>FormRegistrationResult.cs</DependentUpon>
     </Compile>
+    <Compile Include="PicHexFileParser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProgrammingCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TransactionCommands.cs" />
     <Compile Include="TransponderCommands.cs" />
+    <Compile Include="TransponderEncoding.cs" />
     <Compile Include="TransponderInfo.cs" />
     <Compile Include="VersionCommands.cs" />
     <EmbeddedResource Include="FormAbout.resx">
@@ -104,6 +113,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormMain.resx">
       <DependentUpon>FormMain.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormProgramTweak.resx">
+      <DependentUpon>FormProgramTweak.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormRegistration.resx">
       <DependentUpon>FormRegistration.cs</DependentUpon>

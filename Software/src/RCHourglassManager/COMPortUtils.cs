@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Windows.Forms;
+using System.ComponentModel;
+using System.Threading;
 
 
 
@@ -81,6 +83,8 @@ namespace RCHourglassManager
     public class COMPortInfo
 
     {
+
+        
 
         public string Name { get; set; }
 
@@ -168,10 +172,72 @@ namespace RCHourglassManager
 
 
     /// <summary>
-    /// Serial Port command executor
+    /// Serial Port command executor. It manages a queue of IBasicCommand sent to the COM
+    /// port. The first command is the one waiting for responses
     /// </summary>
     public class ComPortCommandExecutor : IDisposable
     {
+
+        public partial class ComTimeoutWorker : BackgroundWorker
+        {
+
+            /// <summary>
+            /// Costruttore standard.
+            /// </summary>
+            protected ComTimeoutWorker()
+            {
+
+                this.WorkerSupportsCancellation = true;
+            }
+
+            /// <summary>
+            /// Costruttore parametrizzato per classi di tipo componente.
+            /// </summary>
+            /// <param name="container"></param>
+            protected ComTimeoutWorker(IContainer container)
+            {
+
+                this.WorkerSupportsCancellation = true;
+                container.Add(this);
+            }
+
+            protected static ComTimeoutWorker _singleton = null;
+
+            /// <summary>
+            /// Ritorna l'unica istanza del pinger worker
+            /// </summary>
+            static public ComTimeoutWorker Worker
+            {
+                get
+                {
+                    if (_singleton == null) _singleton = new ComTimeoutWorker();
+                    return _singleton;
+                }
+            }
+            public void Exit()
+            {
+                this.CancelAsync();
+            }
+
+            protected override void OnDoWork(DoWorkEventArgs e)
+            {
+                base.OnDoWork(e);
+                while (!this.CancellationPending)
+                {
+
+                    try { ComPortCommandExecutor.Singleton.checkForTimeout();  } catch { }
+                    int ntry = 0;
+                    // Check every 500 ms
+                    while (!CancellationPending && ntry < 50)
+                    {
+                        ntry++;
+                        // Check for interruption every 10 ms
+                        Thread.Sleep(10);
+                    }
+                }
+            }
+        }
+
 
         String currentName = String.Empty;
         SerialPort thePort = null;
@@ -179,9 +245,11 @@ namespace RCHourglassManager
 
         Action kickoffRead = null;
         List<IBasicCommand> commandQueue = new List<IBasicCommand>();
+        List<BeginTransactionCommand> activeTransacions = new List<BeginTransactionCommand>();
         List<RCHourglassCommandListener> listeners = new List<RCHourglassCommandListener>();
 
-
+        protected DateTime lastSendDate = new DateTime(0);
+        
         static ComPortCommandExecutor theSingleton = null;
 
         public static ComPortCommandExecutor Singleton { get { return theSingleton; } }
@@ -210,7 +278,7 @@ namespace RCHourglassManager
         {
             if (!String.Equals(currentName, comName) || thePort == null)
             {
-                if (thePort != null) try { thePort.Close(); } catch { }
+                if (thePort != null) try { LineReceived -= ComPortCommandExecutor_LineReceived; thePort.Close(); } catch { }
                 this.currentName = comName;
 
                 try
@@ -219,7 +287,8 @@ namespace RCHourglassManager
                     thePort.Parity = Parity.None;
                     thePort.DataBits = 8;
                     thePort.StopBits = StopBits.One;
-                    thePort.BaudRate = 115200;
+                    //thePort.BaudRate = 115200;
+                    thePort.BaudRate = 57600;
                     thePort.Open();
                     kickoffRead = delegate
                     {
@@ -250,6 +319,23 @@ namespace RCHourglassManager
                     throw;
 
                 }
+            }
+        }
+
+        private void notifyCommandTimeout(IBasicCommand timedOutCommand)
+        {
+
+            foreach (RCHourglassCommandListener l in listeners)
+            {
+                try
+                {
+
+                    l.CommandTimeout(timedOutCommand);
+                }
+                catch
+                {
+                }
+
             }
         }
 
@@ -286,34 +372,64 @@ namespace RCHourglassManager
             String s = Encoding.ASCII.GetString(arr);
             s = s.Replace("\r", "").Replace("\n",""); // Remove endline
 
-            if (commandQueue.Count>0)
+            lock (commandQueue)
             {
-                commandQueue[0].HandleStringResponse(s);
-                if (commandQueue[0].HasFinished)
+                if (commandQueue.Count > 0)
                 {
-                    // Correct command execution
-                    IBasicCommand finishedCommand = commandQueue[0];
-
-
-                    commandQueue.RemoveAt(0);
-
-                    notifyCommandFinished(finishedCommand);
-
-                    if (commandQueue.Count > 0)
+                    commandQueue[0].HandleStringResponse(s);
+                    if (commandQueue[0].HasFinished)
                     {
-                        byte[] msg = Encoding.ASCII.GetBytes(commandQueue[0].Command + "\r\n");
-                        thePort.BaseStream.BeginWrite(msg, 0, msg.Length, null, commandQueue[0]);
-                        if (commandQueue[0].HasFinished)
+                        // Correct command execution
+                        IBasicCommand finishedCommand = commandQueue[0];
+
+
+                        commandQueue.RemoveAt(0);
+
+                        notifyCommandFinished(finishedCommand);
+                        if (!finishedCommand.WasSuccessfull)
                         {
-                            finishedCommand = commandQueue[0];
-                            commandQueue.RemoveAt(0);
-                            notifyCommandFinished(finishedCommand);
+                            // See if I'm in a transaction. Clear out commands in queue up to the end transaction command
+                            if (this.activeTransacions.Count > 0)
+                            {
+                                this.activeTransacions.RemoveAt(this.activeTransacions.Count - 1);
+                                while (commandQueue.Count > 0 && !(commandQueue[0] is EndTransactionCommand))
+                                {
+                                    commandQueue.RemoveAt(0);
+                                }
+                                if (commandQueue.Count > 0 && commandQueue[0] is EndTransactionCommand) commandQueue.RemoveAt(0);
+                            }
+
+                        }
+
+
+                        while (commandQueue.Count > 0 && (commandQueue[0] is BeginTransactionCommand || commandQueue[0] is EndTransactionCommand))
+                        {
+                            if (commandQueue[0] is BeginTransactionCommand)
+                            {
+                                activeTransacions.Add(commandQueue[0] as BeginTransactionCommand);
+                                commandQueue.RemoveAt(0);
+                            }
+                            if (commandQueue[0] is EndTransactionCommand)
+                            {
+                                if (activeTransacions.Count > 0) activeTransacions.RemoveAt(activeTransacions.Count - 1);
+                                commandQueue.RemoveAt(0);
+                            }
+                        }
+                        if (commandQueue.Count > 0)
+                        {
+                            byte[] msg = Encoding.ASCII.GetBytes(commandQueue[0].Command + "\r\n");
+                            lastSendDate = DateTime.Now;
+                            thePort.BaseStream.BeginWrite(msg, 0, msg.Length, null, commandQueue[0]);
+                            if (commandQueue[0].HasFinished) // Some commands do not need a response
+                            {
+                                finishedCommand = commandQueue[0];
+                                commandQueue.RemoveAt(0);
+                                notifyCommandFinished(finishedCommand);
+                            }
                         }
                     }
-
                 }
             }
-
         }
 
         public delegate void LineRecevedDelegate(byte[] a);
@@ -375,21 +491,102 @@ namespace RCHourglassManager
 
         }
 
+        void checkForTimeout()
+        {
+            if (thePort == null) throw new Exception("COM Port not connected!");
+            lock (commandQueue)
+            {
+                if (commandQueue.Count == 0) return;
+                int timeouMS = commandQueue[0].TimeoutMs;
+                if (lastSendDate.AddMilliseconds(timeouMS) < DateTime.Now)
+                {
+                    IBasicCommand timedOutCommand = commandQueue[0];
+
+
+                    commandQueue.RemoveAt(0);
+
+                    notifyCommandTimeout(timedOutCommand);
+
+                    // See if I'm in a transaction. Clear out commands in queue up to the end transaction command
+                    if (this.activeTransacions.Count > 0)
+                    {
+                        this.activeTransacions.RemoveAt(this.activeTransacions.Count - 1);
+                        while (commandQueue.Count > 0 && !(commandQueue[0] is EndTransactionCommand))
+                        {
+                            commandQueue.RemoveAt(0);
+                        }
+                        if (commandQueue.Count > 0 && commandQueue[0] is EndTransactionCommand) commandQueue.RemoveAt(0);
+                    }
+
+
+
+
+                    while (commandQueue.Count > 0 && (commandQueue[0] is BeginTransactionCommand || commandQueue[0] is EndTransactionCommand))
+                    {
+                        if (commandQueue[0] is BeginTransactionCommand)
+                        {
+                            activeTransacions.Add(commandQueue[0] as BeginTransactionCommand);
+                            commandQueue.RemoveAt(0);
+                        }
+                        if (commandQueue[0] is EndTransactionCommand)
+                        {
+                            if (activeTransacions.Count > 0) activeTransacions.RemoveAt(activeTransacions.Count - 1);
+                            commandQueue.RemoveAt(0);
+                        }
+                    }
+                    if (commandQueue.Count > 0)
+                    {
+                        byte[] msg = Encoding.ASCII.GetBytes(commandQueue[0].Command + "\r\n");
+                        lastSendDate = DateTime.Now;
+                        thePort.BaseStream.BeginWrite(msg, 0, msg.Length, null, commandQueue[0]);
+                        if (commandQueue[0].HasFinished) // Some commands do not need a response
+                        {
+                            IBasicCommand finishedCommand = commandQueue[0];
+                            commandQueue.RemoveAt(0);
+                            notifyCommandFinished(finishedCommand);
+                        }
+                    }
+
+                }
+
+            }
+        }
+
         public void SendCommand(IBasicCommand cmd)
         {
             if (cmd == null) return;
             if (thePort == null) throw new Exception("COM Port not connected!");
-            commandQueue.Add(cmd);
-            // No message in queue.... send direct
-            if (commandQueue.Count == 1)
+            lock (commandQueue)
             {
-                byte[] msg = Encoding.ASCII.GetBytes(cmd.Command + "\r\n");
-                thePort.BaseStream.BeginWrite(msg, 0, msg.Length, null, cmd);
-                if (commandQueue[0].HasFinished)
+                commandQueue.Add(cmd);
+
+                // No message in queue.... send direct
+                if (commandQueue.Count == 1)
                 {
-                    IBasicCommand finishedCommand = commandQueue[0];
-                    commandQueue.RemoveAt(0);
-                    notifyCommandFinished(finishedCommand);
+
+                    if (commandQueue[0] is BeginTransactionCommand)
+                    {
+                        activeTransacions.Add(commandQueue[0] as BeginTransactionCommand);
+                        commandQueue.RemoveAt(0);
+                        return;
+                    }
+                    if (commandQueue[0] is EndTransactionCommand)
+                    {
+                        if (activeTransacions.Count > 0) activeTransacions.RemoveAt(activeTransacions.Count - 1);
+                        commandQueue.RemoveAt(0);
+                        return;
+                    }
+
+                    byte[] msg = Encoding.ASCII.GetBytes(cmd.Command + "\r\n");
+                    lastSendDate = DateTime.Now;
+                    thePort.BaseStream.BeginWrite(msg, 0, msg.Length, null, cmd);
+
+                    if (commandQueue[0].HasFinished) // Some commands do not need a response
+                    {
+                        IBasicCommand finishedCommand = commandQueue[0];
+                        commandQueue.RemoveAt(0);
+                        notifyCommandFinished(finishedCommand);
+                    }
                 }
             }
         }

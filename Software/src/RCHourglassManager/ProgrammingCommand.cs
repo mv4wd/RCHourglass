@@ -142,5 +142,335 @@ namespace RCHourglassManager
                 return;
             }
         }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 30000; } }
+    }
+
+
+
+    /// <summary>
+    /// Begin PIC programming
+    /// </summary>
+    public class PicStartProgramCommand : IBasicCommand
+    {
+        protected String errorCause = String.Empty;
+
+        protected bool finished = false;
+
+ 
+        public string Command
+        {
+            get
+            {
+                return $"BEGIN PROGRAMMING";
+            }
+        }
+
+        public string Description
+        {
+            get
+            {
+                return "Begin PIC programming";
+            }
+        }
+
+        public string ErrorCause
+        {
+            get
+            {
+                return errorCause;
+            }
+        }
+
+        public bool HasFinished
+        {
+            get
+            {
+                return finished;
+            }
+        }
+
+        public bool WasSuccessfull
+        {
+            get
+            {
+                return finished && String.IsNullOrEmpty(errorCause);
+            }
+        }
+
+        public void HandleStringResponse(string resp)
+        {
+            if (String.IsNullOrEmpty(resp)) return;
+            if (resp.StartsWith("SUCCESS BEGIN PROGRAMMING"))
+            {
+                finished = true;
+            }
+            if (resp.StartsWith("ERROR"))
+            {
+                this.finished = true;
+                errorCause = resp.Substring(6).Trim();
+                if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
+    }
+
+    /// <summary>
+    /// End PIC programming
+    /// </summary>
+    public class PicEndProgramCommand : IBasicCommand
+    {
+        protected String errorCause = String.Empty;
+
+        protected bool finished = false;
+
+        public string Command
+        {
+            get
+            {
+                return $"END PROGRAMMING";
+            }
+        }
+
+        public string Description
+        {
+            get
+            {
+                return "End PIC programming";
+            }
+        }
+
+        public string ErrorCause
+        {
+            get
+            {
+                return errorCause;
+            }
+        }
+
+        public bool HasFinished
+        {
+            get
+            {
+                return finished;
+            }
+        }
+
+        public bool WasSuccessfull
+        {
+            get
+            {
+                return finished && String.IsNullOrEmpty(errorCause);
+            }
+        }
+
+        public void HandleStringResponse(string resp)
+        {
+            if (String.IsNullOrEmpty(resp)) return;
+            if (resp.StartsWith("SUCCESS END PROGRAMMING"))
+            {
+                finished = true;
+            }
+            if (resp.StartsWith("ERROR"))
+            {
+                this.finished = true;
+                errorCause = resp.Substring(6).Trim();
+                if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
+    }
+
+
+    /// <summary>
+    /// Erase PIC memory
+    /// </summary>
+    public class PicEraseCommand : IBasicCommand
+    {
+        protected String errorCause = String.Empty;
+
+        protected bool finished = false;
+
+        public string Command
+        {
+            get
+            {
+                return $"ERASE DEVICE";
+            }
+        }
+
+        public string Description
+        {
+            get
+            {
+                return "Erase PIC memory";
+            }
+        }
+
+        public string ErrorCause
+        {
+            get
+            {
+                return errorCause;
+            }
+        }
+
+        public bool HasFinished
+        {
+            get
+            {
+                return finished;
+            }
+        }
+
+        public bool WasSuccessfull
+        {
+            get
+            {
+                return finished && String.IsNullOrEmpty(errorCause);
+            }
+        }
+
+        public void HandleStringResponse(string resp)
+        {
+            if (String.IsNullOrEmpty(resp)) return;
+            if (resp.StartsWith("SUCCESS ERASE DEVICE"))
+            {
+                finished = true;
+            }
+            if (resp.StartsWith("ERROR"))
+            {
+                this.finished = true;
+                errorCause = resp.Substring(6).Trim();
+                if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
+    }
+
+
+
+    /// <summary>
+    /// Write PIC memory
+    /// </summary>
+    public class PicWriteMemoryCommand : IBasicCommand
+    {
+        protected String errorCause = String.Empty;
+
+        protected bool finished = false;
+        bool verify;
+        uint address;
+        UInt16[] data;
+
+        public PicWriteMemoryCommand(uint address, UInt16 []data, bool verify)
+        {
+            if (address < 0 || data == null || data.Length > 10 || data.Length==0) throw new ArgumentException("Memory address ora data size wrong");
+            this.address = address;
+            this.verify = verify;
+            this.data = new UInt16[data.Length];
+            data.CopyTo(this.data, 0);
+        }
+
+        public string Command
+        {
+            get
+            {
+                StringBuilder s = new StringBuilder(100);
+
+                s.Append("WRITEMEM ");
+                if (verify) s.Append("V ");
+                s.Append(Convert.ToString(address, 16).PadLeft(4, '0'));
+                s.Append(" ");
+                for (int i=0;i<data.Length;i++)
+                {
+                    s.Append(Convert.ToString(data[i], 16).PadLeft(4, '0'));
+                }
+                return s.ToString().ToUpperInvariant();
+
+            }
+        }
+
+        public string Description
+        {
+            get
+            {
+                return "Write PIC memory";
+            }
+        }
+
+        public string ErrorCause
+        {
+            get
+            {
+                return errorCause;
+            }
+        }
+
+        public bool HasFinished
+        {
+            get
+            {
+                return finished;
+            }
+        }
+
+        public bool WasSuccessfull
+        {
+            get
+            {
+                return finished && String.IsNullOrEmpty(errorCause);
+            }
+        }
+
+        public void HandleStringResponse(string resp)
+        {
+            if (String.IsNullOrEmpty(resp)) return;
+            if (resp.StartsWith("SUCCESS WRITEMEM ADDRESS "))
+            {
+                finished = true;
+                String writtenAddress = resp.Substring("SUCCESS WRITEMEM ADDRESS ".Length).Trim().Split(' ')[0];
+                try
+                {
+
+                    int ad = Convert.ToInt32(writtenAddress, 16);
+                    if (ad!=address) errorCause = $"Address write mismatch. Got {ad} expected {address}";
+                }
+                catch
+                {
+                    errorCause = "Address write mismatch";
+                }
+                return;
+
+            }
+            if (resp.StartsWith("ERROR"))
+            {
+                this.finished = true;
+                errorCause = resp.Substring(6).Trim();
+                if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
+                return;
+            }
+        }
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
     }
 }

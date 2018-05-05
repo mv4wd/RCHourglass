@@ -125,6 +125,11 @@ namespace RCHourglassManager
                 if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
             }
         }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
     }
 
     /// <summary>
@@ -248,6 +253,10 @@ namespace RCHourglassManager
             }
         }
 
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
     }
 
     /// <summary>
@@ -308,9 +317,14 @@ namespace RCHourglassManager
                 if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
             }
         }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 1000; } }
     }
     /// <summary>
-    /// Get all nfos about a registered transponder entry
+    /// Get all infos about a registered transponder entry
     /// </summary>
     public class TransponderDetailCommand : IBasicCommand
     {
@@ -424,6 +438,11 @@ namespace RCHourglassManager
                 if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
             }
         }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 5000; } }
     }
 
     /// <summary>
@@ -558,5 +577,10 @@ namespace RCHourglassManager
                 if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
             }
         }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 30000; } }
     }
 }

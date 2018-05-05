@@ -52,16 +52,39 @@ namespace RCHourglassManager
         /// </summary>
         String Description { get; }
 
+        /// <summary>
+        /// Returns the string to send in the serial stream
+        /// </summary>
         String Command { get; }
 
+        /// <summary>
+        /// Handles the decoder response
+        /// </summary>
+        /// <param name="resp"></param>
         void HandleStringResponse(string resp);
 
+        /// <summary>
+        /// Returns if the command has finished andling responses from the decoder
+        /// </summary>
         bool HasFinished { get; }
 
+        /// <summary>
+        /// Returns if the command succeeded
+        /// </summary>
         bool WasSuccessfull { get; }
 
+        /// <summary>
+        /// Returns the error cause
+        /// </summary>
         String ErrorCause { get;  }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        int TimeoutMs { get; }
     }
+     
+
 
     public class AbortCommand : IBasicCommand
     {
@@ -109,6 +132,11 @@ namespace RCHourglassManager
         {
             return;
         }
+
+        /// <summary>
+        /// Returns the timeout in ms before the command is considered expired without response
+        /// </summary>
+        public int TimeoutMs { get { return 1000; } } // Instant command will never timeout
     }
 
 

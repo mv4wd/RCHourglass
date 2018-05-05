@@ -65,13 +65,27 @@
             this.buttonDeleteSelected = new System.Windows.Forms.Button();
             this.buttonRefreshFromDecoder = new System.Windows.Forms.Button();
             this.panel6 = new System.Windows.Forms.Panel();
+            this.buttonDebug = new System.Windows.Forms.Button();
             this.buttonSaveDB = new System.Windows.Forms.Button();
             this.buttonOpenDB = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.tabPageSetup = new System.Windows.Forms.TabPage();
-            this.buttonAmbRcMode = new System.Windows.Forms.Button();
-            this.buttonCanoMode = new System.Windows.Forms.Button();
+            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.comboBoxStartSerial = new System.Windows.Forms.ComboBox();
+            this.buttonApplyStartupMode = new System.Windows.Forms.Button();
+            this.label10 = new System.Windows.Forms.Label();
+            this.comboBoxStartUSB = new System.Windows.Forms.ComboBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.buttonChangeMode = new System.Windows.Forms.Button();
+            this.label9 = new System.Windows.Forms.Label();
+            this.comboBoxChangeMode = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.textBoxVMin = new System.Windows.Forms.TextBox();
+            this.label13 = new System.Windows.Forms.Label();
+            this.textBoxDecoderId = new System.Windows.Forms.TextBox();
+            this.label12 = new System.Windows.Forms.Label();
+            this.buttonTest = new System.Windows.Forms.Button();
             this.comboBoxFreq = new System.Windows.Forms.ComboBox();
             this.buttonRefreshConfig = new System.Windows.Forms.Button();
             this.buttonApplyConfig = new System.Windows.Forms.Button();
@@ -81,12 +95,14 @@
             this.label6 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.tabPagePIC = new System.Windows.Forms.TabPage();
+            this.progressPic = new System.Windows.Forms.ProgressBar();
+            this.labelPicProgress = new System.Windows.Forms.Label();
+            this.buttonProgram = new System.Windows.Forms.Button();
             this.buttonDetectPIC = new System.Windows.Forms.Button();
             this.label8 = new System.Windows.Forms.Label();
             this.panel4 = new System.Windows.Forms.Panel();
             this.logBox = new System.Windows.Forms.RichTextBox();
             this.panel5 = new System.Windows.Forms.Panel();
-            this.buttonDebug = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.tabControl1.SuspendLayout();
@@ -105,6 +121,8 @@
             this.flowLayoutPanel1.SuspendLayout();
             this.panel6.SuspendLayout();
             this.tabPageSetup.SuspendLayout();
+            this.groupBox3.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.tabPagePIC.SuspendLayout();
             this.panel4.SuspendLayout();
@@ -495,6 +513,18 @@
             this.panel6.Size = new System.Drawing.Size(433, 50);
             this.panel6.TabIndex = 4;
             // 
+            // buttonDebug
+            // 
+            this.buttonDebug.Enabled = false;
+            this.buttonDebug.Location = new System.Drawing.Point(314, 14);
+            this.buttonDebug.Name = "buttonDebug";
+            this.buttonDebug.Size = new System.Drawing.Size(75, 23);
+            this.buttonDebug.TabIndex = 5;
+            this.buttonDebug.Text = "Debug";
+            this.buttonDebug.UseVisualStyleBackColor = true;
+            this.buttonDebug.Visible = false;
+            this.buttonDebug.Click += new System.EventHandler(this.buttonDebug_Click);
+            // 
             // buttonSaveDB
             // 
             this.buttonSaveDB.AccessibleDescription = "Export the History to a file";
@@ -529,8 +559,8 @@
             // 
             // tabPageSetup
             // 
-            this.tabPageSetup.Controls.Add(this.buttonAmbRcMode);
-            this.tabPageSetup.Controls.Add(this.buttonCanoMode);
+            this.tabPageSetup.Controls.Add(this.groupBox3);
+            this.tabPageSetup.Controls.Add(this.groupBox2);
             this.tabPageSetup.Controls.Add(this.groupBox1);
             this.tabPageSetup.Location = new System.Drawing.Point(4, 29);
             this.tabPageSetup.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -542,28 +572,134 @@
             this.tabPageSetup.UseVisualStyleBackColor = true;
             this.tabPageSetup.Enter += new System.EventHandler(this.tabPageSetup_Enter);
             // 
-            // buttonAmbRcMode
+            // groupBox3
             // 
-            this.buttonAmbRcMode.Location = new System.Drawing.Point(506, 26);
-            this.buttonAmbRcMode.Name = "buttonAmbRcMode";
-            this.buttonAmbRcMode.Size = new System.Drawing.Size(105, 69);
-            this.buttonAmbRcMode.TabIndex = 2;
-            this.buttonAmbRcMode.Text = "Set AmbRc mode (experimental)";
-            this.buttonAmbRcMode.UseVisualStyleBackColor = true;
-            this.buttonAmbRcMode.Click += new System.EventHandler(this.buttonAmbRcMode_Click);
+            this.groupBox3.Controls.Add(this.label11);
+            this.groupBox3.Controls.Add(this.comboBoxStartSerial);
+            this.groupBox3.Controls.Add(this.buttonApplyStartupMode);
+            this.groupBox3.Controls.Add(this.label10);
+            this.groupBox3.Controls.Add(this.comboBoxStartUSB);
+            this.groupBox3.Location = new System.Drawing.Point(339, 89);
+            this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Size = new System.Drawing.Size(295, 107);
+            this.groupBox3.TabIndex = 4;
+            this.groupBox3.TabStop = false;
+            this.groupBox3.Text = "Power on mode";
             // 
-            // buttonCanoMode
+            // label11
             // 
-            this.buttonCanoMode.Location = new System.Drawing.Point(372, 26);
-            this.buttonCanoMode.Name = "buttonCanoMode";
-            this.buttonCanoMode.Size = new System.Drawing.Size(105, 69);
-            this.buttonCanoMode.TabIndex = 1;
-            this.buttonCanoMode.Text = "Set CANO mode";
-            this.buttonCanoMode.UseVisualStyleBackColor = true;
-            this.buttonCanoMode.Click += new System.EventHandler(this.buttonCanoMode_Click);
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(16, 71);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(43, 20);
+            this.label11.TabIndex = 4;
+            this.label11.Text = "Serial";
+            // 
+            // comboBoxStartSerial
+            // 
+            this.comboBoxStartSerial.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxStartSerial.FormattingEnabled = true;
+            this.comboBoxStartSerial.Items.AddRange(new object[] {
+            "CANO",
+            "CANO CLASSIC",
+            "RCHOURGLASS",
+            "AMBRC",
+            "TRANX",
+            "OFF"});
+            this.comboBoxStartSerial.Location = new System.Drawing.Point(88, 68);
+            this.comboBoxStartSerial.Name = "comboBoxStartSerial";
+            this.comboBoxStartSerial.Size = new System.Drawing.Size(121, 28);
+            this.comboBoxStartSerial.TabIndex = 3;
+            // 
+            // buttonApplyStartupMode
+            // 
+            this.buttonApplyStartupMode.Location = new System.Drawing.Point(223, 67);
+            this.buttonApplyStartupMode.Name = "buttonApplyStartupMode";
+            this.buttonApplyStartupMode.Size = new System.Drawing.Size(57, 28);
+            this.buttonApplyStartupMode.TabIndex = 2;
+            this.buttonApplyStartupMode.Text = "Apply";
+            this.buttonApplyStartupMode.UseVisualStyleBackColor = true;
+            this.buttonApplyStartupMode.Click += new System.EventHandler(this.buttonApplyStartupMode_Click);
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(16, 37);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(36, 20);
+            this.label10.TabIndex = 1;
+            this.label10.Text = "USB";
+            // 
+            // comboBoxStartUSB
+            // 
+            this.comboBoxStartUSB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxStartUSB.FormattingEnabled = true;
+            this.comboBoxStartUSB.Items.AddRange(new object[] {
+            "CANO",
+            "CANO CLASSIC",
+            "RCHOURGLASS",
+            "AMBRC",
+            "TRANX",
+            "OFF"});
+            this.comboBoxStartUSB.Location = new System.Drawing.Point(88, 34);
+            this.comboBoxStartUSB.Name = "comboBoxStartUSB";
+            this.comboBoxStartUSB.Size = new System.Drawing.Size(121, 28);
+            this.comboBoxStartUSB.TabIndex = 0;
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.buttonChangeMode);
+            this.groupBox2.Controls.Add(this.label9);
+            this.groupBox2.Controls.Add(this.comboBoxChangeMode);
+            this.groupBox2.Location = new System.Drawing.Point(339, 8);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(295, 75);
+            this.groupBox2.TabIndex = 3;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Change mode (current port, until power off)";
+            // 
+            // buttonChangeMode
+            // 
+            this.buttonChangeMode.Location = new System.Drawing.Point(223, 34);
+            this.buttonChangeMode.Name = "buttonChangeMode";
+            this.buttonChangeMode.Size = new System.Drawing.Size(57, 28);
+            this.buttonChangeMode.TabIndex = 2;
+            this.buttonChangeMode.Text = "Go";
+            this.buttonChangeMode.UseVisualStyleBackColor = true;
+            this.buttonChangeMode.Click += new System.EventHandler(this.buttonChangeMode_Click);
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(16, 37);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(44, 20);
+            this.label9.TabIndex = 1;
+            this.label9.Text = "Mode";
+            // 
+            // comboBoxChangeMode
+            // 
+            this.comboBoxChangeMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxChangeMode.FormattingEnabled = true;
+            this.comboBoxChangeMode.Items.AddRange(new object[] {
+            "Cano mode",
+            "Cano classic",
+            "RCHourglass (Cano+)",
+            "AMBRc",
+            "Tranx",
+            "Loopback"});
+            this.comboBoxChangeMode.Location = new System.Drawing.Point(88, 34);
+            this.comboBoxChangeMode.Name = "comboBoxChangeMode";
+            this.comboBoxChangeMode.Size = new System.Drawing.Size(121, 28);
+            this.comboBoxChangeMode.TabIndex = 0;
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.textBoxVMin);
+            this.groupBox1.Controls.Add(this.label13);
+            this.groupBox1.Controls.Add(this.textBoxDecoderId);
+            this.groupBox1.Controls.Add(this.label12);
+            this.groupBox1.Controls.Add(this.buttonTest);
             this.groupBox1.Controls.Add(this.comboBoxFreq);
             this.groupBox1.Controls.Add(this.buttonRefreshConfig);
             this.groupBox1.Controls.Add(this.buttonApplyConfig);
@@ -574,23 +710,65 @@
             this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Location = new System.Drawing.Point(8, 8);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(289, 188);
+            this.groupBox1.Size = new System.Drawing.Size(325, 207);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Notification Setup";
+            this.groupBox1.Text = "Parameters Setup";
+            // 
+            // textBoxVMin
+            // 
+            this.textBoxVMin.Location = new System.Drawing.Point(193, 142);
+            this.textBoxVMin.Name = "textBoxVMin";
+            this.textBoxVMin.Size = new System.Drawing.Size(75, 26);
+            this.textBoxVMin.TabIndex = 12;
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(20, 145);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(132, 20);
+            this.label13.TabIndex = 11;
+            this.label13.Text = "Low Voltage 0-25.5V";
+            // 
+            // textBoxDecoderId
+            // 
+            this.textBoxDecoderId.Location = new System.Drawing.Point(193, 114);
+            this.textBoxDecoderId.Name = "textBoxDecoderId";
+            this.textBoxDecoderId.Size = new System.Drawing.Size(75, 26);
+            this.textBoxDecoderId.TabIndex = 10;
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(20, 117);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(121, 20);
+            this.label12.TabIndex = 9;
+            this.label12.Text = "Decoder ID (0-255)";
+            // 
+            // buttonTest
+            // 
+            this.buttonTest.Location = new System.Drawing.Point(274, 78);
+            this.buttonTest.Name = "buttonTest";
+            this.buttonTest.Size = new System.Drawing.Size(45, 33);
+            this.buttonTest.TabIndex = 8;
+            this.buttonTest.Text = "Test";
+            this.buttonTest.UseVisualStyleBackColor = true;
+            this.buttonTest.Click += new System.EventHandler(this.buttonTest_Click);
             // 
             // comboBoxFreq
             // 
             this.comboBoxFreq.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxFreq.FormattingEnabled = true;
-            this.comboBoxFreq.Location = new System.Drawing.Point(193, 96);
+            this.comboBoxFreq.Location = new System.Drawing.Point(193, 81);
             this.comboBoxFreq.Name = "comboBoxFreq";
             this.comboBoxFreq.Size = new System.Drawing.Size(75, 28);
             this.comboBoxFreq.TabIndex = 7;
             // 
             // buttonRefreshConfig
             // 
-            this.buttonRefreshConfig.Location = new System.Drawing.Point(97, 149);
+            this.buttonRefreshConfig.Location = new System.Drawing.Point(97, 168);
             this.buttonRefreshConfig.Name = "buttonRefreshConfig";
             this.buttonRefreshConfig.Size = new System.Drawing.Size(75, 33);
             this.buttonRefreshConfig.TabIndex = 6;
@@ -600,7 +778,7 @@
             // 
             // buttonApplyConfig
             // 
-            this.buttonApplyConfig.Location = new System.Drawing.Point(193, 149);
+            this.buttonApplyConfig.Location = new System.Drawing.Point(193, 168);
             this.buttonApplyConfig.Name = "buttonApplyConfig";
             this.buttonApplyConfig.Size = new System.Drawing.Size(75, 33);
             this.buttonApplyConfig.TabIndex = 5;
@@ -611,7 +789,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(20, 99);
+            this.label7.Location = new System.Drawing.Point(20, 84);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(152, 20);
             this.label7.TabIndex = 4;
@@ -619,14 +797,14 @@
             // 
             // textBoxBeep
             // 
-            this.textBoxBeep.Location = new System.Drawing.Point(193, 63);
+            this.textBoxBeep.Location = new System.Drawing.Point(193, 49);
             this.textBoxBeep.Name = "textBoxBeep";
             this.textBoxBeep.Size = new System.Drawing.Size(75, 26);
             this.textBoxBeep.TabIndex = 3;
             // 
             // textBoxLED
             // 
-            this.textBoxLED.Location = new System.Drawing.Point(193, 31);
+            this.textBoxLED.Location = new System.Drawing.Point(193, 17);
             this.textBoxLED.Name = "textBoxLED";
             this.textBoxLED.Size = new System.Drawing.Size(75, 26);
             this.textBoxLED.TabIndex = 2;
@@ -634,7 +812,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(20, 67);
+            this.label6.Location = new System.Drawing.Point(20, 53);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(171, 20);
             this.label6.TabIndex = 1;
@@ -643,7 +821,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(20, 34);
+            this.label5.Location = new System.Drawing.Point(20, 20);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(161, 20);
             this.label5.TabIndex = 0;
@@ -652,6 +830,9 @@
             // tabPagePIC
             // 
             this.tabPagePIC.AccessibleDescription = "PIC programming functions";
+            this.tabPagePIC.Controls.Add(this.progressPic);
+            this.tabPagePIC.Controls.Add(this.labelPicProgress);
+            this.tabPagePIC.Controls.Add(this.buttonProgram);
             this.tabPagePIC.Controls.Add(this.buttonDetectPIC);
             this.tabPagePIC.Controls.Add(this.label8);
             this.tabPagePIC.Location = new System.Drawing.Point(4, 29);
@@ -661,6 +842,32 @@
             this.tabPagePIC.TabIndex = 2;
             this.tabPagePIC.Text = "PIC Programming";
             this.tabPagePIC.UseVisualStyleBackColor = true;
+            // 
+            // progressPic
+            // 
+            this.progressPic.Location = new System.Drawing.Point(289, 124);
+            this.progressPic.Name = "progressPic";
+            this.progressPic.Size = new System.Drawing.Size(286, 25);
+            this.progressPic.TabIndex = 4;
+            this.progressPic.Visible = false;
+            // 
+            // labelPicProgress
+            // 
+            this.labelPicProgress.AutoSize = true;
+            this.labelPicProgress.Location = new System.Drawing.Point(285, 89);
+            this.labelPicProgress.Name = "labelPicProgress";
+            this.labelPicProgress.Size = new System.Drawing.Size(0, 20);
+            this.labelPicProgress.TabIndex = 3;
+            // 
+            // buttonProgram
+            // 
+            this.buttonProgram.Location = new System.Drawing.Point(58, 147);
+            this.buttonProgram.Name = "buttonProgram";
+            this.buttonProgram.Size = new System.Drawing.Size(128, 44);
+            this.buttonProgram.TabIndex = 2;
+            this.buttonProgram.Text = "Program PIC";
+            this.buttonProgram.UseVisualStyleBackColor = true;
+            this.buttonProgram.Click += new System.EventHandler(this.buttonProgram_Click);
             // 
             // buttonDetectPIC
             // 
@@ -674,13 +881,12 @@
             // 
             // label8
             // 
-            this.label8.AutoSize = true;
             this.label8.Location = new System.Drawing.Point(8, 15);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(283, 60);
             this.label8.TabIndex = 0;
-            this.label8.Text = "This feature is under development.\r\nYou can detect a PIC connected to the socket\r" +
-    "\nto test the programming circuit\r\n";
+            this.label8.Text = "This feature requires programming circuit installed in the board and PIC connecte" +
+    "d";
             // 
             // panel4
             // 
@@ -713,18 +919,6 @@
             this.panel5.Size = new System.Drawing.Size(753, 256);
             this.panel5.TabIndex = 0;
             // 
-            // buttonDebug
-            // 
-            this.buttonDebug.Enabled = false;
-            this.buttonDebug.Location = new System.Drawing.Point(314, 14);
-            this.buttonDebug.Name = "buttonDebug";
-            this.buttonDebug.Size = new System.Drawing.Size(75, 23);
-            this.buttonDebug.TabIndex = 5;
-            this.buttonDebug.Text = "Debug";
-            this.buttonDebug.UseVisualStyleBackColor = true;
-            this.buttonDebug.Visible = false;
-            this.buttonDebug.Click += new System.EventHandler(this.buttonDebug_Click);
-            // 
             // FormManager
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -740,6 +934,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "RCHourglass Manager";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.Load += new System.EventHandler(this.Form);
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
@@ -762,6 +957,10 @@
             this.panel6.ResumeLayout(false);
             this.panel6.PerformLayout();
             this.tabPageSetup.ResumeLayout(false);
+            this.groupBox3.ResumeLayout(false);
+            this.groupBox3.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.tabPagePIC.ResumeLayout(false);
@@ -827,11 +1026,27 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Button buttonDetectPIC;
-        private System.Windows.Forms.Button buttonAmbRcMode;
-        private System.Windows.Forms.Button buttonCanoMode;
         private System.Windows.Forms.Button buttonOpenDB;
         private System.Windows.Forms.Button buttonSaveDB;
         private System.Windows.Forms.Button buttonDebug;
+        private System.Windows.Forms.Button buttonProgram;
+        private System.Windows.Forms.Button buttonTest;
+        private System.Windows.Forms.ProgressBar progressPic;
+        private System.Windows.Forms.Label labelPicProgress;
+        private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.ComboBox comboBoxStartSerial;
+        private System.Windows.Forms.Button buttonApplyStartupMode;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.ComboBox comboBoxStartUSB;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Button buttonChangeMode;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.ComboBox comboBoxChangeMode;
+        private System.Windows.Forms.TextBox textBoxDecoderId;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.TextBox textBoxVMin;
+        private System.Windows.Forms.Label label13;
     }
 }
 

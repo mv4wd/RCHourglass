@@ -2,10 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-
-
-
 
 /* ========================================
  * This software is copyright by Marco Venturini , 2017
@@ -36,46 +32,20 @@ using System.Threading.Tasks;
  * ========================================
 */
 
-/// <summary>
-/// This file contains commands to query the decoder firmware version and license
-/// </summary>
 
 namespace RCHourglassManager
 {
-
-    public class VersionMinMaj
-    {
-        public int Minor = 0, Major = 0;
-        public bool Beta = false;
-        public bool Alpha = false;
-
-        public bool isAtLeast(int major, int minor)
-        {
-            return this.Major > major || (this.Major == major && this.Minor >= minor);
-        }
-
-    }
-
     /// <summary>
-    /// Get the version from the decoder firmware
+    /// This command is just a placeholder to abort a sequence of commands in case of errors
+    /// for the COM port writer queue
     /// </summary>
-    public class VersionCommand : IBasicCommand
+    class BeginTransactionCommand : IBasicCommand
     {
-        protected String errorCause = String.Empty, versionInfo  = String.Empty;
-        protected bool finished = false;
-
-        public VersionMinMaj VersionData = new VersionMinMaj();
-
-        /// <summary>
-        /// Returns the full version string
-        /// </summary>
-        public string Version {  get { return versionInfo;  } }
-
         public string Command
         {
             get
             {
-                return "VERSION";
+                return "BEGIN TRAN"; // :-) SQL Style
             }
         }
 
@@ -83,7 +53,7 @@ namespace RCHourglassManager
         {
             get
             {
-                return "Get the RCHourglass firmware version";
+                return "Begin transaction";
             }
         }
 
@@ -91,7 +61,7 @@ namespace RCHourglassManager
         {
             get
             {
-                return errorCause;
+                return "";
             }
         }
 
@@ -99,7 +69,7 @@ namespace RCHourglassManager
         {
             get
             {
-                return finished;
+                return true; // This command doesn't do anything in the com port. No feedback required
             }
         }
 
@@ -107,59 +77,28 @@ namespace RCHourglassManager
         {
             get
             {
-                return finished && String.IsNullOrEmpty(errorCause);
+                return true;
             }
         }
 
         public void HandleStringResponse(string resp)
         {
-             
-            if (String.IsNullOrEmpty(resp)) return;
-            if (resp.StartsWith("RC Hourglass v"))
-            {
-                versionInfo = resp;
-                try
-                {
-                    string s = resp.Substring("RC Hourglass v".Length);
-                    string[] split = s.Split(' ');
-                    string[] split2 = split[0].Split('.');
-                    VersionData.Major = Convert.ToInt16(split2[0]);
-                    VersionData.Minor = Convert.ToInt16(split2[1]);
-                }
-                catch
-                { }
-                VersionData.Beta = resp.ToUpperInvariant().Contains("BETA");
-                VersionData.Alpha = resp.ToUpperInvariant().Contains("ALPHA");
-                this.finished = true;
-            }
-            if (resp.StartsWith("ERROR"))
-            {
-                this.finished = true;
-                errorCause = resp.Substring(6).Trim();
-                if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
-            }
+            throw new NotImplementedException();
         }
-
         /// <summary>
         /// Returns the timeout in ms before the command is considered expired without response
         /// </summary>
         public int TimeoutMs { get { return 1000; } }
     }
 
-    public class LicenseCommand : IBasicCommand
+
+    class EndTransactionCommand : IBasicCommand
     {
-        protected String errorCause = String.Empty;
-        protected StringBuilder licenseLines = new StringBuilder();
-        protected bool finished = false;
-
-
-        public string LicenseTerms { get { return licenseLines.ToString(); } }
-
         public string Command
         {
             get
             {
-                return "LICENSE";
+                return "COMMIT"; // :-) SQL Style
             }
         }
 
@@ -167,7 +106,7 @@ namespace RCHourglassManager
         {
             get
             {
-                return "Get the RCHourglass license info";
+                return "End transaction";
             }
         }
 
@@ -175,7 +114,7 @@ namespace RCHourglassManager
         {
             get
             {
-                return errorCause;
+                return "";
             }
         }
 
@@ -183,7 +122,7 @@ namespace RCHourglassManager
         {
             get
             {
-                return finished;
+                return true; // This command doesn't do anything in the com port. No feedback required
             }
         }
 
@@ -191,34 +130,18 @@ namespace RCHourglassManager
         {
             get
             {
-                return finished && String.IsNullOrEmpty(errorCause);
+                return true;
             }
         }
 
         public void HandleStringResponse(string resp)
         {
-
-            if (String.IsNullOrEmpty(resp)) return;
-            if (resp.StartsWith("ERROR"))
-            {
-                this.finished = true;
-                errorCause = resp.Substring(6).Trim();
-                if (String.IsNullOrEmpty(errorCause)) errorCause = "Generic error";
-                return;
-            }
-            licenseLines.AppendLine(resp);
-           
-            if (resp.ToLowerInvariant(). Contains("venturini"))
-            {
-                 
-                this.finished = true;
-            }
-
+            throw new NotImplementedException();
         }
 
         /// <summary>
         /// Returns the timeout in ms before the command is considered expired without response
         /// </summary>
-        public int TimeoutMs { get { return 5000; } }
+        public int TimeoutMs { get { return 1000; } }
     }
 }

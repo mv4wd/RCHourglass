@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -52,6 +53,10 @@ namespace RCHourglassManager
         List<TransponderInfo> decoderTransponders = new List<TransponderInfo>();
         List<TransponderInfo> transponderDatabase = new List<TransponderInfo>();
 
+        VersionMinMaj vConnected = null;
+
+        protected int errorCount = 0;
+
         /// <summary>
         /// This is to avoid a warning overlap
         /// </summary>
@@ -59,25 +64,28 @@ namespace RCHourglassManager
 
         public FormManager()
         {
-            InitializeComponent();            
+            InitializeComponent();
             refreshCOMPorts();
             executor.addListener(this);
             if (FillDatabase()) refreshTranspondersDatabase();
             this.Text = $"RCHourglass Manager version {Application.ProductVersion} - {Application.CompanyName}";
 
-            for (int i = 6; i<=30; i++)
+            for (int i = 6; i <= 30; i++)
             {
                 float kHz = 20.0f / i;
                 comboBoxFreq.Items.Add(kHz.ToString("0.##"));
 
             }
+            comboBoxFreq.Items.Add("0 kHz - Pulse out");
+            buttonProgram.Enabled = false;
+            buttonTest.Enabled = false;
         }
 
-        
+
         /// <summary>
         /// The path that contains the transponder archive
         /// </summary>
-        public String DBPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RCHourglass Manager");  } }
+        public String DBPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RCHourglass Manager"); } }
 
         /// <summary>
         /// The transponder archive file. Plain XML
@@ -103,7 +111,7 @@ namespace RCHourglassManager
                 catch (Exception ex)
                 {
                     this.logBox.AppendText("Cannot create directory for transponder database\r\n");
-                    this.logBox.AppendText("Directory: "+DBPath+"\r\n");
+                    this.logBox.AppendText("Directory: " + DBPath + "\r\n");
                     this.logBox.AppendText("Cause: " + ex.Message + "\r\n");
                     return false;
                 }
@@ -141,13 +149,13 @@ namespace RCHourglassManager
                         List<TransponderInfo> l = null;
                         l = s.Deserialize(fs) as List<TransponderInfo>;
                         transponderDatabase.Clear();
-                        if (l!=null)
-                        {                            
+                        if (l != null)
+                        {
                             transponderDatabase.AddRange(l);
                             logBox.AppendText(string.Format("Read {0} transponders from archive\r\n", l.Count));
                         }
                     }
-                    
+
                     return true;
                 }
                 catch (Exception ex)
@@ -173,9 +181,9 @@ namespace RCHourglassManager
                 using (FileStream fs = new FileStream(DBFile, FileMode.OpenOrCreate | FileMode.Truncate))
                 {
                     s.Serialize(fs, transponderDatabase);
-                    
+
                     logBox.AppendText("Archive updated\r\n");
-                    
+
                 }
 
                 return true;
@@ -221,7 +229,7 @@ namespace RCHourglassManager
         /// <summary>
         /// Returns the COM ported selected from the combo box
         /// </summary>
-        public String SelectedPortName 
+        public String SelectedPortName
         {
             get
             {
@@ -242,13 +250,13 @@ namespace RCHourglassManager
             {
                 this.cbCOMPorts.Items.Clear();
                 this.cbCOMPorts.Items.Add(String.Empty);
-                 
+
 
                 foreach (COMPortInfo comPort in COMPortInfo.GetCOMPortsInfo())
                 {
                     this.cbCOMPorts.Items.Add(comPort);
                 }
-                if (this.cbCOMPorts.Items.Count==1)
+                if (this.cbCOMPorts.Items.Count == 1)
                 {
                     this.cbCOMPorts.SelectedIndex = -1;
 
@@ -269,6 +277,13 @@ namespace RCHourglassManager
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+
+            try
+            {
+                ComPortCommandExecutor.ComTimeoutWorker.Worker.CancelAsync();
+            }
+            catch { }
+
             try { executor.Dispose(); } catch { }
         }
 
@@ -315,6 +330,11 @@ namespace RCHourglassManager
                 MessageBox.Show(this, "Error opening port " + SelectedPortName + "\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
+            if (!ComPortCommandExecutor.ComTimeoutWorker.Worker.IsBusy)
+            {
+                ComPortCommandExecutor.ComTimeoutWorker.Worker.RunWorkerAsync();
+            }
+
             try
             {
                 VersionCommand v = new VersionCommand();
@@ -350,10 +370,34 @@ namespace RCHourglassManager
             }
             else
             {
+                if (command is DecoderIdConfigGet)
+                {
+                    this.textBoxDecoderId.Text = (command as DecoderIdConfigGet).DecoderId.ToString();
+                }
+
+                if (command is VMinConfigGet)
+                {
+                    this.textBoxVMin.Text = (command as VMinConfigGet).Voltage.ToString();
+                }
                 if (command is VersionCommand)
                 {
+                    vConnected = (command as VersionCommand).VersionData;
                     labelVersion.Text = (command as VersionCommand).Version;
                     logBox.AppendText("Decoder detected: " + (command as VersionCommand).Version + "\r\n");
+                    this.buttonProgram.Enabled = vConnected.isAtLeast(0, 4);
+                    this.buttonTest.Enabled = vConnected.isAtLeast(0, 4);
+                    this.buttonApplyConfig.Enabled = vConnected.isAtLeast(0, 5);
+                    this.textBoxDecoderId.Enabled = vConnected.isAtLeast(0, 5);
+                    this.textBoxVMin.Enabled = vConnected.isAtLeast(0, 5);
+                    if (vConnected.isAtLeast(0, 5))
+                    {
+                        // Request startup mode , decoder id and voltage threshold
+                        executor.SendCommand(new VMinConfigGet());
+                        executor.SendCommand(new DecoderIdConfigGet());
+
+                        executor.SendCommand(new USBStartConfigGet());
+                        executor.SendCommand(new SerialStartConfigGet());
+                    }
                     return;
                 }
 
@@ -361,7 +405,7 @@ namespace RCHourglassManager
                 {
                     using (FormAbout a = new FormAbout())
                     {
-                        a.licenseTextBox.Text = (command as LicenseCommand).LicenseTerms;                         
+                        a.licenseTextBox.Text = (command as LicenseCommand).LicenseTerms;
                         a.ShowDialog(this);
                     }
                     return;
@@ -427,11 +471,12 @@ namespace RCHourglassManager
                 if (command is BeeperConfigGet)
                 {
                     this.textBoxBeep.Text = (command as BeeperConfigGet).BeepDuration.ToString();
-                    int comboIndex = (command as BeeperConfigGet).BeepDivider -6;
-                    if (comboIndex>=0 && comboIndex < comboBoxFreq.Items.Count)
+                    int comboIndex = (command as BeeperConfigGet).BeepDivider - 6;
+                    if (comboIndex >= 0 && comboIndex < comboBoxFreq.Items.Count)
                     {
                         comboBoxFreq.SelectedIndex = comboIndex;
                     }
+                    if ((command as BeeperConfigGet).BeepDivider == 0) comboBoxFreq.SelectedIndex = comboBoxFreq.Items.Count - 1;
                     buttonApplyConfig.Enabled = true;
                     buttonRefreshConfig.Enabled = true;
                     return;
@@ -450,14 +495,30 @@ namespace RCHourglassManager
                 }
                 if (command is CanoModeSet)
                 {
-                    MessageBox.Show(this, "Switched to CANO mode", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(this, "Switched to CANO mode until reboot.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
                 if (command is AmbRcModeSet)
                 {
-                    MessageBox.Show(this, "Switched to AmbRc mode (experimental).\r\nNOTICE: decoder will revert to CANO mode if USB is disconnected", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(this, "Switched to AmbRc mode until reboot.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
+                if (command is TranxModeSet)
+                {
+                    MessageBox.Show(this, "Switched to TranX mode until reboot.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                if (command is RCHourglassModeSet)
+                {
+                    MessageBox.Show(this, "Switched to RCHourglass mode until reboot.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                if (command is LoopbackModeSet)
+                {
+                    MessageBox.Show(this, "Switched to Loopback mode until reboot.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
                 if (command is TransponderAddCommand)
                 {
 
@@ -468,22 +529,84 @@ namespace RCHourglassManager
                         foreach (String s in w) { logBox.AppendText(s + "\r\n"); sb.AppendLine(s); }
                         if (lastWarnDialog.AddSeconds(10) < DateTime.Now)
                         {
-                            MessageBox.Show(this, "Check log detail for warnings\r\n"+ sb.ToString(), "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show(this, "Check log detail for warnings\r\n" + sb.ToString(), "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             lastWarnDialog = DateTime.Now;
                         }
                     }
                     return;
+                }
+
+                if (command is PicWriteMemoryCommand)
+                {
+                    //logBox.AppendText( command.Command + "\r\n");                     
+                    progressPic.PerformStep();
+
+                }
+
+                if (command is PicEndProgramCommand)
+                {
+                    labelPicProgress.Text = "Programming finished";
+                    if (errorCount > 0) labelPicProgress.Text += "\r\nSome errors were detected";
+                    progressPic.Visible = false;
+                }
+
+                if (command is USBStartConfigGet)
+                {
+                    String s = (command as USBStartConfigGet).Mode;
+                    switch (s)
+                    {
+                        case "CANO": comboBoxStartUSB.SelectedIndex = 0; break;
+                        case "CANO CLASSIC": comboBoxStartUSB.SelectedIndex = 1; break;
+                        case "RCHOURGLASS": comboBoxStartUSB.SelectedIndex = 2; break;
+                        case "AMBRC": comboBoxStartUSB.SelectedIndex = 3; break;
+                        case "TRANX": comboBoxStartUSB.SelectedIndex = 4; break;
+                        case "OFF": comboBoxStartUSB.SelectedIndex = 5; break;
+                        default: comboBoxStartUSB.SelectedIndex = -1; break;
+
+                    }
+                }
+                if (command is SerialStartConfigGet)
+                {
+
+                    /*CANO
+            CANO CLASSIC
+            RCHOURGLASS
+            AMBRC
+            TRANX
+            OFF */
+                    String s = (command as SerialStartConfigGet).Mode;
+                    switch (s)
+                    {
+                        case "CANO": comboBoxStartSerial.SelectedIndex = 0; break;
+                        case "CANO CLASSIC": comboBoxStartSerial.SelectedIndex = 1; break;
+                        case "RCHOURGLASS": comboBoxStartSerial.SelectedIndex = 2; break;
+                        case "AMBRC": comboBoxStartSerial.SelectedIndex = 3; break;
+                        case "TRANX": comboBoxStartSerial.SelectedIndex = 4; break;
+                        case "OFF": comboBoxStartSerial.SelectedIndex = 5; break;
+                        default: comboBoxStartSerial.SelectedIndex = -1; break;
+                    }
+
                 }
             }
         }
 
         public void CommandTimeout(IBasicCommand command)
         {
-            // TO DO 
+            errorCount++;
+            if (command == null) return;
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke((MethodInvoker)delegate { this.CommandTimeout(command); });
+            }
+            else
+            {
+                logBox.AppendText("Command timeout:" + command.Command + "\r\n");
+            }
         }
 
         public void CommandError(IBasicCommand command)
         {
+            errorCount++;
             if (command == null) return;
             if (this.InvokeRequired)
             {
@@ -492,7 +615,7 @@ namespace RCHourglassManager
             else
             {
                 logBox.AppendText("Command error:" + command.ErrorCause + "\r\n");
-                if(command is PicDetectCommand || command is AmbRcModeSet || command is CanoModeSet)
+                if (command is PicDetectCommand || command is AmbRcModeSet || command is CanoModeSet)
                 {
                     MessageBox.Show(this, command.ErrorCause, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
@@ -502,7 +625,7 @@ namespace RCHourglassManager
         private void button8_Click(object sender, EventArgs e)
         {
             int selCount = listViewDecoder.SelectedItems.Count;
-            if (selCount==0)
+            if (selCount == 0)
             {
                 MessageBox.Show("No transponder selected");
                 return;
@@ -559,7 +682,7 @@ namespace RCHourglassManager
                         {
                             int tx = Convert.ToInt32(listViewDB.SelectedItems[i].Text);
                             TransponderInfo info = (from TransponderInfo t in this.transponderDatabase where t.TxNumber == tx select t).FirstOrDefault();
-                            if (info!=null) cmds.Add(new TransponderAddCommand(info));
+                            if (info != null) cmds.Add(new TransponderAddCommand(info));
                         }
                         catch { }
                     }
@@ -590,7 +713,7 @@ namespace RCHourglassManager
             }
             using (FormRegistration r = new FormRegistration())
             {
-                 
+
                 r.ShowDialog(this);
                 try { executor.SendCommand(new ListTransponderCommand()); } catch { }
             }
@@ -608,7 +731,7 @@ namespace RCHourglassManager
             {
                 if (DialogResult.Yes == MessageBox.Show(this, $"Do you really want to remove {selCount} transponder from the history archive?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2))
                 {
-                     
+
                     for (int i = 0; i < selCount; i++)
                     {
                         try
@@ -656,16 +779,13 @@ namespace RCHourglassManager
                         try
                         {
                             int tx = Convert.ToInt32(listViewDecoder.Items[i].Text);
-                             cmds.Add(new TransponderDetailCommand(tx));
+                            cmds.Add(new TransponderDetailCommand(tx));
                         }
                         catch { }
                     }
                     cmds.Add(new ListTransponderCommand());
 
                     foreach (IBasicCommand c in cmds) executor.SendCommand(c);
-
-                
-
                 }
             }
             catch (Exception ex)
@@ -680,7 +800,7 @@ namespace RCHourglassManager
 
             try
             {
-                 
+
                 buttonApplyConfig.Enabled = executor != null ? executor.isPortConnected : false;
                 buttonRefreshConfig.Enabled = executor != null ? executor.isPortConnected : false;
                 if (executor != null && executor.isPortConnected)
@@ -706,16 +826,40 @@ namespace RCHourglassManager
         {
             try
             {
-                int ld = -1, bd = -1;
+                int ld = -1, bd = -1, id = -1;
+                decimal vmin = -1;
                 try { ld = Convert.ToInt32(textBoxLED.Text.Trim()); } catch { }
                 try { bd = Convert.ToInt32(textBoxBeep.Text.Trim()); } catch { }
+                try { id = Convert.ToInt32(textBoxDecoderId.Text.Trim()); } catch { }
+                try { vmin = Convert.ToDecimal(textBoxVMin.Text.Trim(), CultureInfo.InvariantCulture); } catch { }
                 LedConfigSet c1 = new LedConfigSet(ld);
-                BeeperConfigSet c2 = new BeeperConfigSet(bd, 6+comboBoxFreq.SelectedIndex);
+                BeeperConfigSet c2 = null;
+                if (comboBoxFreq.SelectedIndex < comboBoxFreq.Items.Count-1) c2 = new BeeperConfigSet(bd, 6 + comboBoxFreq.SelectedIndex);
+                else c2 = new BeeperConfigSet(bd, 0);
+                DecoderIdConfigSet c3 = null;
+                VMinConfigSet c4 = null;
+
+
+                if (vConnected.isAtLeast(0, 5))
+                {
+                    c3 = new DecoderIdConfigSet(id);
+                    c4 = new VMinConfigSet(vmin);
+                }
 
                 executor.SendCommand(c1);
                 executor.SendCommand(c2);
+                executor.SendCommand(c3);
+                executor.SendCommand(c4);
+
                 executor.SendCommand(new BeeperConfigGet());
                 executor.SendCommand(new LedConfigGet());
+
+                if (vConnected.isAtLeast(0, 5))
+                {
+                    // Request startup mode , decoder id and voltage threshold
+                    executor.SendCommand(new VMinConfigGet());
+                    executor.SendCommand(new DecoderIdConfigGet());
+                }
             }
             catch (Exception ex)
             {
@@ -785,41 +929,7 @@ namespace RCHourglassManager
             }
         }
 
-        private void buttonCanoMode_Click(object sender, EventArgs e)
-        {
-            if (!executor.isPortConnected)
-            {
-                MessageBox.Show("Not connected");
-                return;
-            }
-            try
-            {
-                executor.SendCommand(new CanoModeSet());
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "Error setting mode.\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                return;
-            }
-        }
 
-        private void buttonAmbRcMode_Click(object sender, EventArgs e)
-        {
-            if (!executor.isPortConnected)
-            {
-                MessageBox.Show("Not connected");
-                return;
-            }
-            try
-            {
-                executor.SendCommand(new AmbRcModeSet());
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "Error setting mode.\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                return;
-            }
-        }
 
         private void buttonOpenDB_Click(object sender, EventArgs e)
         {
@@ -854,15 +964,15 @@ namespace RCHourglassManager
                                 logBox.AppendText(string.Format("Read {0} transponders from archive\r\n", l.Count));
                                 int collision = 0;
                                 bool overwrite = false;
-                                foreach(TransponderInfo t in l)
+                                foreach (TransponderInfo t in l)
                                 {
-                                    if (transponderDatabase.Find(x => x.TxNumber == t.TxNumber)!=null)
+                                    if (transponderDatabase.Find(x => x.TxNumber == t.TxNumber) != null)
                                     {
                                         collision++;
 
                                     }
                                 }
-                                if (collision>0)
+                                if (collision > 0)
                                 {
                                     switch (MessageBox.Show(this, $"The archive contains {l.Count} transponders.\r\n{collision} transponders already in the history.\r\nDo you want to update them?\r\nYes = Update from archive   No = Keep my registration data", "Confirm", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Stop))
                                     {
@@ -892,7 +1002,7 @@ namespace RCHourglassManager
                                     else
                                     {
                                         transponderDatabase.Add(t);
-                                    }                                     
+                                    }
                                 }
                                 SaveDatabase();
                                 refreshTranspondersDatabase();
@@ -925,7 +1035,7 @@ namespace RCHourglassManager
                     d.OverwritePrompt = true;
                     d.CheckPathExists = true;
                     d.Filter = "(*.xml)|*.xml";
-                     
+
                     d.Title = "Save transponders to file";
                     if (d.ShowDialog() == DialogResult.OK)
                     {
@@ -935,7 +1045,7 @@ namespace RCHourglassManager
                             s.Serialize(fs, transponderDatabase);
 
                             logBox.AppendText("Archive exported\r\n");
- 
+
                         }
                     }
                 }
@@ -957,7 +1067,7 @@ namespace RCHourglassManager
         /// <param name="e"></param>
         private void buttonDebug_Click(object sender, EventArgs e)
         {
-            
+            /*
             Random r = new Random();
             for (int i= 1; i<=40;i++)
             {
@@ -973,7 +1083,270 @@ namespace RCHourglassManager
                 }
                 transponderDatabase.Add(t);
             }
-            refreshTranspondersDatabase();
+            refreshTranspondersDatabase();*/
+            try
+            {
+                TransponderEncoding.doTest();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+
+
+        }
+
+        private void buttonProgram_Click(object sender, EventArgs e)
+        {
+
+            if (!executor.isPortConnected)
+            {
+                MessageBox.Show("Not connected");
+                return;
+            }
+
+            try
+            {
+                labelPicProgress.Text = "Program select";
+                PicHexFileParser parser = new PicHexFileParser();
+                String filename = String.Empty; ;
+                using (OpenFileDialog d = new OpenFileDialog())
+                {
+                    d.CheckFileExists = true;
+                    d.CheckPathExists = true;
+                    d.Filter = "(*.hex)|*.hex";
+                    d.Multiselect = false;
+                    d.Title = "Select program image";
+                    if (d.ShowDialog() != DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    using (FileStream s = new FileStream(d.FileName, FileMode.Open))
+                    using (StreamReader t = new StreamReader(s))
+                    {
+                        parser.ParseHex(t);
+                    }
+                    filename = d.FileName;
+                }
+
+
+
+
+                HexMemoryBlock bTransponderDataHeader = parser.Records.ReadMem(0x700, 3);
+                int version = 0;
+                UInt32 txNumber = 0;
+                List<byte[]> packets = new List<byte[]>();
+                if (bTransponderDataHeader.DataBlock[0] == 0x344D && bTransponderDataHeader.DataBlock[1] == 0x3456)
+                {
+                    // Endian reverse
+                    version = ((bTransponderDataHeader.DataBlock[2] >> 8) & 0x0ff) | ((bTransponderDataHeader.DataBlock[2] & 0x0ff) << 8);
+                    switch (version)
+                    {
+                        case 1:
+                            // Decode the Transponder packets
+                            {
+                                uint baseAddress = 0x703;
+
+                                for (int i = 0; i < 8; i++, baseAddress += 12)
+                                {
+                                    HexMemoryBlock bTransponderData = parser.Records.ReadMem(baseAddress, 12);
+                                    byte[] telegram = new byte[12];
+                                    for (int j = 0; j < 12; j++) telegram[j] = (byte)bTransponderData.DataBlock[j];
+                                    packets.Add(telegram);
+                                }
+                                break;
+                            }
+                    }
+                }
+
+                using (FormProgramTweak fTweak = new FormProgramTweak())
+                {
+                    fTweak.FileName = filename;
+                    fTweak.Program = parser.Records;
+                    if (packets.Count > 0)
+                    {
+                        txNumber = TransponderEncoding.decodeRC3Telegram(packets[0]);
+
+                        fTweak.ExtraInfo = $"Transponder number : {txNumber}";
+                        fTweak.tweakableNumber = txNumber;
+                        fTweak.tewakablePackets = packets;
+
+                    }
+
+                    // Prompt for tweak dialog
+                    if (fTweak.ShowDialog(this) != DialogResult.OK) return;
+                }
+
+                labelPicProgress.Text = "Programming PIC";
+                progressPic.Visible = true;
+                progressPic.Step = 1;
+                progressPic.Minimum = 0;
+                progressPic.Value = 0;
+                progressPic.Maximum = parser.Records.Count;
+
+
+                List<IBasicCommand> cmds = new List<IBasicCommand>();
+
+                cmds.Add(new BeginTransactionCommand());
+                cmds.Add(new PicDetectCommand());
+                cmds.Add(new PicStartProgramCommand());
+                cmds.Add(new PicEraseCommand());
+
+                foreach (HexMemoryBlock b in parser.Records)
+                {
+                    PicWriteMemoryCommand pWrite = new PicWriteMemoryCommand(b.BaseAddress, b.DataBlock.ToArray(), true);
+                    cmds.Add(pWrite);
+                }
+                cmds.Add(new EndTransactionCommand());
+                cmds.Add(new PicEndProgramCommand());
+                cmds.Add(new AbortCommand()); // Abort whatever is going on
+                errorCount = 0;
+
+                foreach (IBasicCommand c in cmds) executor.SendCommand(c);
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error programming PIC archive.\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+
+
+
+
+        }
+
+        private void buttonTest_Click(object sender, EventArgs e)
+        {
+            if (!executor.isPortConnected)
+            {
+                MessageBox.Show("Not connected");
+                return;
+            }
+            try
+            {
+                executor.SendCommand(new Beep());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error testing notification.\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+        }
+
+        private void Form(object sender, EventArgs e)
+        {
+
+        }
+
+        /// <summary>
+        /// Switch emulation on the current channel
+        /// </summary>
+        private void buttonChangeMode_Click(object sender, EventArgs e)
+        {
+            if (!executor.isPortConnected)
+            {
+                MessageBox.Show("Not connected");
+                return;
+            }
+            if (comboBoxChangeMode.SelectedIndex == -1)
+            {
+                MessageBox.Show("Select mode");
+                return;
+            }
+            try
+            {
+                IBasicCommand cmd = null;
+                /*Cano mode
+                Cano classic
+                RCHourglass(Cano +)
+                AMBRc 
+                Tranx
+                Loopback*/
+
+                switch (comboBoxChangeMode.SelectedIndex)
+                {
+                    case 0: cmd = new CanoModeSet(); break;
+                    case 1: cmd = new CanoModeSet(false); break;
+                    case 2: if (vConnected.isAtLeast(0, 5)) cmd = new RCHourglassModeSet(); break;
+                    case 3: cmd = new AmbRcModeSet(); break;
+                    case 4: if (vConnected.isAtLeast(0, 5)) cmd = new TranxModeSet(); break;
+                    case 5: if (vConnected.isAtLeast(0, 5)) cmd = new LoopbackModeSet(); break;
+                    default: break;
+                }
+                if (cmd == null) throw new Exception("Mode not supported. Please check latest firmware is installed");
+                executor.SendCommand(cmd);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error setting mode.\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Apply startup emulation mode
+        /// </summary>
+        private void buttonApplyStartupMode_Click(object sender, EventArgs e)
+        {
+            /*CANO
+            CANO CLASSIC
+            RCHOURGLASS
+            AMBRC
+            TRANX
+            OFF */
+            if (!executor.isPortConnected)
+            {
+                MessageBox.Show("Not connected");
+                return;
+            }
+
+
+            if (comboBoxStartSerial.SelectedIndex == -1 || comboBoxStartUSB.SelectedIndex == -1)
+            {
+                MessageBox.Show("Select mode");
+                return;
+            }
+            try
+            {
+                IBasicCommand cmd = null, cmd2 = null;
+
+                switch (comboBoxStartUSB.SelectedIndex)
+                {
+                    case 0: cmd = new SetStartupModeCommand("CANO", false); break;
+                    case 1: cmd = new SetStartupModeCommand("CANO CLASSIC", false); break;
+                    case 2: cmd = new SetStartupModeCommand("RCHOURGLASS", false); break;
+                    case 3: cmd = new SetStartupModeCommand("AMBRC", false); break;
+                    case 4: cmd = new SetStartupModeCommand("TRANX", false); break;
+                    case 5: cmd = new SetStartupModeCommand("OFF", false); break;
+                    default: break;
+                }
+                switch (comboBoxStartSerial.SelectedIndex)
+                {
+                    case 0: cmd2 = new SetStartupModeCommand("CANO", true); break;
+                    case 1: cmd2 = new SetStartupModeCommand("CANO CLASSIC", true); break;
+                    case 2: cmd2 = new SetStartupModeCommand("RCHOURGLASS", true); break;
+                    case 3: cmd2 = new SetStartupModeCommand("AMBRC", true); break;
+                    case 4: cmd2 = new SetStartupModeCommand("TRANX", true); break;
+                    case 5: cmd2 = new SetStartupModeCommand("OFF", true); break;
+                    default: break;
+                }
+
+                if (cmd == null || cmd2 == null) throw new Exception("Mode not supported. Please check latest firmware is installed");
+                executor.SendCommand(cmd);
+                executor.SendCommand(cmd2);
+                executor.SendCommand(new USBStartConfigGet());
+                executor.SendCommand(new SerialStartConfigGet());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Error setting mode.\r\nCause:" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
         }
     }
 }

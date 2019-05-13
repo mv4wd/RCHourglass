@@ -440,7 +440,10 @@ SENDID
     SENDONEBYTE (MessageRam+D'10')
     SENDONEBYTE (MessageRam+D'11')
 
-
+    NOP                               ; Let last bit finish
+	NOP
+	NOP 
+	
     BCF  MDCON, MDBIT                 ; Clear polarity
 
     NOP

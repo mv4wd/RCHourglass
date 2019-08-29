@@ -1,1 +1,1 @@
-# RCHourglassDIY lap timing system. ![RCHourglass logo](images/RCHourglassLogoNewBig.png "RCHourglass logo")# Folder descriptionThis folder contains the modified transponder schematics, that might require modifications to the firmware and or board layout. 
+# RCHourglassDIY lap timing system. ![RCHourglass logo](../../../images/RCHourglassLogoNewBig.png "RCHourglass logo")# Folder descriptionThis folder contains the modified transponder schematics, that might require modifications to the firmware and/or board layout. 
